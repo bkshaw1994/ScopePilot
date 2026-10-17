@@ -12,7 +12,7 @@ export function createServerClient() {
     throw new Error('Missing Supabase server configuration variables.');
   }
 
-  return createClient<Database>(
+  return createClient<any>(
     supabaseUrl,
     supabaseAnonKey,
     {

@@ -557,5 +557,24 @@ export interface Database {
         };
       };
     };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      project_status: ProjectStatus;
+      requirement_category: RequirementCategory;
+      requirement_priority: RequirementPriority;
+      document_status: DocumentStatus;
+      proposal_status: ProposalStatus;
+      comparison_status: ComparisonStatus;
+      finding_category: FindingCategory;
+      decision_status: DecisionStatus;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
 }

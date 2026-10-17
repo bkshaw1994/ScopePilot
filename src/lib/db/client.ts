@@ -9,5 +9,5 @@ export function createClient() {
     throw new Error('Missing Supabase public environment variables (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY).');
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseKey);
+  return createBrowserClient<any>(supabaseUrl, supabaseKey);
 }

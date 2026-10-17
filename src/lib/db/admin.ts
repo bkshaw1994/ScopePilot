@@ -13,7 +13,7 @@ export function createAdminClient() {
     throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL for administrative client.');
   }
 
-  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+  return createClient<any>(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
