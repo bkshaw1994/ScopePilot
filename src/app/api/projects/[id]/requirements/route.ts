@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/db/server';
 import { CreateRequirementSchema } from '@/lib/validators/requirement';
-import { assertAuthenticated, assertProjectAccess } from '@/lib/security/guards';
+import { assertAuthenticated, assertProjectAccess, isLocalDevFallbackAllowed } from '@/lib/security/guards';
 
 interface Params {
   params: {
@@ -12,9 +12,8 @@ interface Params {
 export async function GET(req: NextRequest, { params }: Params) {
   try {
     const { id: projectId } = params;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-    if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
+    if (isLocalDevFallbackAllowed()) {
       return NextResponse.json({
         success: true,
         data: [],
@@ -56,8 +55,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
+    if (isLocalDevFallbackAllowed()) {
       const mockReq = {
         id: crypto.randomUUID(),
         project_id: projectId,

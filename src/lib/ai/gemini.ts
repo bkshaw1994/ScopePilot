@@ -290,6 +290,87 @@ export class GeminiProvider implements AIProvider {
       };
     }
 
+    if (req.schemaName === 'ExtractRequirementsResult') {
+      const simulatedExtraction = {
+        projectOverview:
+          'Extracted project scope and functional requirements from provided client specification notes.',
+        requirements: [
+          {
+            reqCode: 'REQ-001',
+            title: 'Core User Authentication & Role Management',
+            description:
+              'Enable users to register, log in securely via email and password, and maintain session tokens.',
+            category: 'functional' as const,
+            priority: 'must_have' as const,
+            acceptanceCriteria: [
+              'Password must be at least 8 characters with numbers and symbols.',
+              'Email verification required prior to first workspace access.',
+            ],
+            dependencies: [],
+            assumptions: ['Standard transactional email provider (Resend/SendGrid) will be configured.'],
+            exclusions: ['Hardware security keys (FIDO2/WebAuthn) excluded from v1.0.'],
+            unresolvedQuestions: ['Will social OAuth (Google/GitHub) be required in Phase 2?'],
+            confidenceScore: 0.95,
+          },
+          {
+            reqCode: 'REQ-002',
+            title: 'Data Ingestion & Scope Tracking Dashboard',
+            description:
+              'Interactive dashboard presenting real-time project metrics, requirement status, and progress charts.',
+            category: 'ui_ux' as const,
+            priority: 'must_have' as const,
+            acceptanceCriteria: [
+              'Visual breakdown of active, pending, and approved requirements.',
+              'Filterable by category and priority tags.',
+            ],
+            dependencies: ['REQ-001'],
+            assumptions: [],
+            exclusions: ['Custom drag-and-drop report builder is out of scope.'],
+            unresolvedQuestions: [],
+            confidenceScore: 0.9,
+          },
+          {
+            reqCode: 'REQ-003',
+            title: 'Third-Party Integration & Webhooks',
+            description:
+              'Provide secure webhook listeners to synchronize state updates with external services.',
+            category: 'integration' as const,
+            priority: 'should_have' as const,
+            acceptanceCriteria: [
+              'HMAC-SHA256 signature verification on incoming payloads.',
+              'Exponential backoff retry up to 3 attempts.',
+            ],
+            dependencies: [],
+            assumptions: ['Payload sizes will not exceed 2MB per request.'],
+            exclusions: ['Bidirectional real-time socket connections.'],
+            unresolvedQuestions: [],
+            confidenceScore: 0.88,
+          },
+        ],
+        extractedExclusions: [
+          'Direct hardware Bluetooth synchronization',
+          'Native mobile desktop companion binaries',
+        ],
+        openClarifications: [
+          'Are there specific data retention periods required for compliance?',
+          'What is the expected concurrent user volume during peak hours?',
+        ],
+      } as unknown as T;
+
+      return {
+        data: simulatedExtraction,
+        usage: {
+          promptTokens: 600,
+          completionTokens: 400,
+          totalTokens: 1000,
+          estimatedCostUsd: 0.00015,
+        },
+        model: `${this.modelName}-simulated`,
+        latencyMs: Date.now() - startTime,
+        rawJson: JSON.stringify(simulatedExtraction),
+      };
+    }
+
     // Default fallback
     throw new Error(`Simulation not supported for schema: ${req.schemaName || 'unknown'}`);
   }

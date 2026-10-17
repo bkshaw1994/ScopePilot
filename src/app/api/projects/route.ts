@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/db/server';
 import { CreateProjectSchema } from '@/lib/validators/project';
-import { assertAuthenticated } from '@/lib/security/guards';
+import { assertAuthenticated, isLocalDevFallbackAllowed } from '@/lib/security/guards';
 
 export async function GET(req: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-    // Check if real Supabase keys are configured
-    if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
+    // Check if local offline development fallback is permitted
+    if (isLocalDevFallbackAllowed()) {
       return NextResponse.json({
         success: true,
         data: [],
@@ -60,8 +58,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
+    if (isLocalDevFallbackAllowed()) {
       const mockProject = {
         id: crypto.randomUUID(),
         user_id: 'mock-user-id',

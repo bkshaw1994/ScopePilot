@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/db/server';
-import { assertAuthenticated, assertProjectAccess } from '@/lib/security/guards';
+import { assertAuthenticated, assertProjectAccess, isLocalDevFallbackAllowed } from '@/lib/security/guards';
 import { computeSha256Hash } from '@/lib/domain/hash';
 import { z } from 'zod';
 
@@ -19,9 +19,8 @@ const ApproveBaselineSchema = z.object({
 export async function GET(req: NextRequest, { params }: Params) {
   try {
     const { id: projectId } = params;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-    if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
+    if (isLocalDevFallbackAllowed()) {
       return NextResponse.json({
         success: true,
         data: [],
@@ -62,8 +61,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
+    if (isLocalDevFallbackAllowed()) {
       const mockSnapshot = [
         { req_code: 'REQ-001', title: 'User Authentication' },
         { req_code: 'REQ-002', title: 'Dashboard Tracking' },

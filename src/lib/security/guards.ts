@@ -51,6 +51,18 @@ export interface UserSession {
 }
 
 /**
+ * Checks whether the environment permits local offline fallback mode.
+ * Strictly forbidden in production (NODE_ENV === 'production').
+ */
+export function isLocalDevFallbackAllowed(): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return !url || url.includes('your-project-id');
+}
+
+/**
  * Asserts the caller has an active, valid Supabase session.
  * Throws 401 AuthorizationError if unauthenticated.
  */

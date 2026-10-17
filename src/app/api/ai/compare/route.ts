@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/db/server';
 import { ScopeComparisonRequestSchema } from '@/lib/validators/scope-comparison';
-import { assertAuthenticated, assertProjectAccess } from '@/lib/security/guards';
+import { assertAuthenticated, assertProjectAccess, isLocalDevFallbackAllowed } from '@/lib/security/guards';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 import { runScopeComparison, BaselineRequirementContext } from '@/lib/domain/scope-engine';
 import { GeminiProvider } from '@/lib/ai/gemini';
@@ -29,8 +29,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
+    if (isLocalDevFallbackAllowed()) {
       // Mock / Local Demo Execution
       const mockBaseline: BaselineRequirementContext[] = [
         {

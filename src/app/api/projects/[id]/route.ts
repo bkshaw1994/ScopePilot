@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/db/server';
 import { UpdateProjectSchema } from '@/lib/validators/project';
-import { assertAuthenticated, assertProjectAccess } from '@/lib/security/guards';
+import { assertAuthenticated, assertProjectAccess, isLocalDevFallbackAllowed } from '@/lib/security/guards';
 
 interface Params {
   params: {
@@ -12,9 +12,8 @@ interface Params {
 export async function GET(req: NextRequest, { params }: Params) {
   try {
     const { id } = params;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-    if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
+    if (isLocalDevFallbackAllowed()) {
       return NextResponse.json({
         success: true,
         data: {
@@ -55,8 +54,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       );
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
+    if (isLocalDevFallbackAllowed()) {
       return NextResponse.json({ success: true, data: { id, ...parsed.data } });
     }
 

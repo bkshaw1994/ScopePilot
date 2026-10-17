@@ -3,11 +3,27 @@ interface RateLimitRecord {
   resetAt: number;
 }
 
-// In-memory token bucket tracking per user
+// In-memory token bucket tracking per user/key
 const memoryStore = new Map<string, RateLimitRecord>();
+const MAX_STORE_SIZE_BEFORE_PRUNE = 500;
 
 /**
- * Enforces rate limiting per identifier (e.g. userId).
+ * Removes all expired rate limit records to prevent memory leaks over time.
+ * Returns the count of removed records.
+ */
+export function pruneExpiredLimits(now: number = Date.now()): number {
+  let pruned = 0;
+  for (const [key, record] of memoryStore.entries()) {
+    if (now >= record.resetAt) {
+      memoryStore.delete(key);
+      pruned += 1;
+    }
+  }
+  return pruned;
+}
+
+/**
+ * Enforces rate limiting per identifier (e.g. userId or projectId).
  * Returns true if allowed, false if limit exceeded.
  */
 export function checkRateLimit(
@@ -16,6 +32,12 @@ export function checkRateLimit(
   windowMs: number = 60 * 60 * 1000 // 1 hour default
 ): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
+
+  // Guard memory growth: prune if cache exceeds size threshold
+  if (memoryStore.size >= MAX_STORE_SIZE_BEFORE_PRUNE) {
+    pruneExpiredLimits(now);
+  }
+
   const record = memoryStore.get(key);
 
   if (!record || now >= record.resetAt) {
@@ -49,4 +71,8 @@ export function checkRateLimit(
 
 export function resetRateLimit(key: string): void {
   memoryStore.delete(key);
+}
+
+export function resetAllRateLimits(): void {
+  memoryStore.clear();
 }

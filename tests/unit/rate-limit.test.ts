@@ -1,33 +1,63 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { checkRateLimit, resetRateLimit } from '@/lib/security/rate-limit';
+import {
+  checkRateLimit,
+  resetRateLimit,
+  resetAllRateLimits,
+  pruneExpiredLimits,
+} from '@/lib/security/rate-limit';
 
-describe('Rate Limiter', () => {
-  const testKey = 'user_test_123';
-
+describe('Rate Limiter Module', () => {
   beforeEach(() => {
-    resetRateLimit(testKey);
+    resetAllRateLimits();
   });
 
-  it('should allow requests within limit', () => {
-    const res1 = checkRateLimit(testKey, 3, 1000);
+  it('allows requests within limit and decrements remaining count', () => {
+    const res1 = checkRateLimit('user-1', 3, 10000);
     expect(res1.allowed).toBe(true);
     expect(res1.remaining).toBe(2);
 
-    const res2 = checkRateLimit(testKey, 3, 1000);
+    const res2 = checkRateLimit('user-1', 3, 10000);
     expect(res2.allowed).toBe(true);
     expect(res2.remaining).toBe(1);
 
-    const res3 = checkRateLimit(testKey, 3, 1000);
+    const res3 = checkRateLimit('user-1', 3, 10000);
     expect(res3.allowed).toBe(true);
     expect(res3.remaining).toBe(0);
   });
 
-  it('should reject requests exceeding limit', () => {
-    checkRateLimit(testKey, 2, 1000);
-    checkRateLimit(testKey, 2, 1000);
+  it('blocks requests exceeding limit', () => {
+    for (let i = 0; i < 3; i++) {
+      checkRateLimit('user-blocked', 3, 10000);
+    }
+    const blockedRes = checkRateLimit('user-blocked', 3, 10000);
+    expect(blockedRes.allowed).toBe(false);
+    expect(blockedRes.remaining).toBe(0);
+  });
 
-    const resBlocked = checkRateLimit(testKey, 2, 1000);
-    expect(resBlocked.allowed).toBe(false);
-    expect(resBlocked.remaining).toBe(0);
+  it('resets limit for specific key', () => {
+    checkRateLimit('user-reset', 1, 10000);
+    const blocked = checkRateLimit('user-reset', 1, 10000);
+    expect(blocked.allowed).toBe(false);
+
+    resetRateLimit('user-reset');
+    const allowed = checkRateLimit('user-reset', 1, 10000);
+    expect(allowed.allowed).toBe(true);
+  });
+
+  it('prunes expired limits correctly', () => {
+    // Record created with 1ms window
+    checkRateLimit('user-expired-1', 5, 1);
+    checkRateLimit('user-expired-2', 5, 1);
+    checkRateLimit('user-active', 5, 100000);
+
+    // Simulate time passing by supplying a future timestamp
+    const futureTime = Date.now() + 5000;
+    const prunedCount = pruneExpiredLimits(futureTime);
+
+    expect(prunedCount).toBe(2);
+
+    // Active record should still be untouched
+    const activeRes = checkRateLimit('user-active', 5, 100000);
+    expect(activeRes.allowed).toBe(true);
   });
 });

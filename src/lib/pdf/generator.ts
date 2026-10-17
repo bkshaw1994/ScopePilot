@@ -1,3 +1,5 @@
+import { escapeHtml } from '@/lib/security/sanitize';
+
 export interface PdfExportData {
   projectName: string;
   clientName: string;
@@ -23,16 +25,26 @@ export interface PdfExportData {
 /**
  * Generates an accessible, print-ready HTML/PDF document stream
  * formatted with high-contrast typography, tables, and audit watermarks.
+ * All user-controlled fields are strictly HTML-escaped to prevent Stored XSS.
  */
 export function generatePdfHtml(data: PdfExportData): string {
   const isScopeReport = data.documentType === 'scope_change_report';
-  const isBaseline = data.documentType === 'baseline';
+
+  const safeProjectName = escapeHtml(data.projectName);
+  const safeClientName = escapeHtml(data.clientName);
+  const safeCurrency = escapeHtml(data.currency);
+  const safeVersionLabel = escapeHtml(data.versionLabel || 'v1.0 (Locked)');
+  const safeContentHash = data.contentHash ? escapeHtml(data.contentHash) : '';
+  const safeDocType = escapeHtml(data.documentType.replace(/_/g, ' ').toUpperCase());
+  const safeGeneratedAt = escapeHtml(data.generatedAt);
+  const safeOverview = data.overview ? escapeHtml(data.overview) : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ScopePilot - ${data.projectName} (${data.documentType.toUpperCase()})</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScopePilot - ${safeProjectName} (${safeDocType})</title>
   <style>
     @page {
       size: A4;
@@ -45,6 +57,7 @@ export function generatePdfHtml(data: PdfExportData): string {
       font-size: 11pt;
       margin: 0;
       padding: 0;
+      background: #ffffff;
     }
     .header {
       border-bottom: 2px solid #6366f1;
@@ -93,6 +106,7 @@ export function generatePdfHtml(data: PdfExportData): string {
       border-radius: 4px;
       margin-top: 8px;
       display: inline-block;
+      word-break: break-all;
     }
     h2 {
       font-size: 13pt;
@@ -126,6 +140,7 @@ export function generatePdfHtml(data: PdfExportData): string {
       font-family: ui-monospace, monospace;
       margin: 8px 0;
       color: #334155;
+      white-space: pre-wrap;
     }
     .exclusion-box {
       background: #fffbeb;
@@ -156,28 +171,28 @@ export function generatePdfHtml(data: PdfExportData): string {
       <div style="font-size: 9pt; color: #64748b;">Deterministic Scope Management SaaS</div>
     </div>
     <div style="text-align: right;">
-      <div class="doc-type">${data.documentType.replace(/_/g, ' ')}</div>
-      <div style="font-size: 8.5pt; color: #64748b;">Generated: ${data.generatedAt}</div>
+      <div class="doc-type">${safeDocType}</div>
+      <div style="font-size: 8.5pt; color: #64748b;">Generated: ${safeGeneratedAt}</div>
     </div>
   </div>
 
   <div class="meta-box">
     <div class="meta-grid">
-      <div><strong>Project:</strong> ${data.projectName}</div>
-      <div><strong>Client:</strong> ${data.clientName}</div>
-      <div><strong>Currency:</strong> ${data.currency}</div>
-      <div><strong>Baseline Version:</strong> ${data.versionLabel || 'v1.0 (Locked)'}</div>
+      <div><strong>Project:</strong> ${safeProjectName}</div>
+      <div><strong>Client:</strong> ${safeClientName}</div>
+      <div><strong>Currency:</strong> ${safeCurrency}</div>
+      <div><strong>Baseline Version:</strong> ${safeVersionLabel}</div>
     </div>
     ${
-      data.contentHash
-        ? `<div class="hash-badge">Cryptographic Integrity Hash: sha256:${data.contentHash}</div>`
+      safeContentHash
+        ? `<div class="hash-badge">Cryptographic Integrity Hash: sha256:${safeContentHash}</div>`
         : ''
     }
   </div>
 
   ${
-    data.overview
-      ? `<h2>1. Executive Summary</h2><p style="font-size: 10pt; color: #334155;">${data.overview}</p>`
+    safeOverview
+      ? `<h2>1. Executive Summary</h2><p style="font-size: 10pt; color: #334155;">${safeOverview}</p>`
       : ''
   }
 
@@ -185,7 +200,7 @@ export function generatePdfHtml(data: PdfExportData): string {
     data.deliverables && data.deliverables.length > 0
       ? `<h2>Agreed Deliverables</h2>
          <ul style="font-size: 10pt; color: #334155; padding-left: 20px;">
-           ${data.deliverables.map((d) => `<li>${d}</li>`).join('')}
+           ${data.deliverables.map((d) => `<li>${escapeHtml(d)}</li>`).join('')}
          </ul>`
       : ''
   }
@@ -195,7 +210,7 @@ export function generatePdfHtml(data: PdfExportData): string {
       ? `<div class="exclusion-box">
            <h3>Explicit Exclusions (Out of Scope in Baseline)</h3>
            <ul style="font-size: 9.5pt; color: #78350f; padding-left: 20px; margin: 0;">
-             ${data.exclusions.map((ex) => `<li>${ex}</li>`).join('')}
+             ${data.exclusions.map((ex) => `<li>${escapeHtml(ex)}</li>`).join('')}
            </ul>
          </div>`
       : ''
@@ -209,13 +224,21 @@ export function generatePdfHtml(data: PdfExportData): string {
              (f) => `
          <div class="finding-card ${f.findingType === 'new_requirement' ? 'creep' : 'matched'}">
            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 10pt;">
-             <span>${f.title}</span>
-             <span style="text-transform: uppercase; font-size: 8.5pt;">${f.findingType.replace('_', ' ')}</span>
+             <span>${escapeHtml(f.title)}</span>
+             <span style="text-transform: uppercase; font-size: 8.5pt;">${escapeHtml(
+               f.findingType.replace(/_/g, ' ')
+             )}</span>
            </div>
-           <div class="quote-box">Client Quote: "${f.quote}"</div>
-           <div style="font-size: 9pt; color: #475569; margin-top: 4px;"><strong>Delta:</strong> ${f.explanation}</div>
-           <div style="font-size: 9pt; margin-top: 6px;"><strong>Recorded Decision:</strong> ${f.decision.replace(/_/g, ' ').toUpperCase()}</div>
-           <div style="font-size: 8.5pt; color: #1e293b; font-weight: 600; margin-top: 4px;">Action: ${f.action}</div>
+           <div class="quote-box">Client Quote: "${escapeHtml(f.quote)}"</div>
+           <div style="font-size: 9pt; color: #475569; margin-top: 4px;"><strong>Delta:</strong> ${escapeHtml(
+             f.explanation
+           )}</div>
+           <div style="font-size: 9pt; margin-top: 6px;"><strong>Recorded Decision:</strong> ${escapeHtml(
+             f.decision.replace(/_/g, ' ').toUpperCase()
+           )}</div>
+           <div style="font-size: 8.5pt; color: #1e293b; font-weight: 600; margin-top: 4px;">Action: ${escapeHtml(
+             f.action
+           )}</div>
          </div>`
            )
            .join('')}`
