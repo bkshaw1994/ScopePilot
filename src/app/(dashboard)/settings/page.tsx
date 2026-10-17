@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/db/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -59,13 +60,17 @@ export default function SettingsPage() {
     setIsDeleting(true);
 
     try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore if offline
+    } finally {
       // Clear all local tenant state
       localStorage.clear();
       sessionStorage.clear();
-      router.push('/');
-    } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
+      router.push('/');
     }
   };
 

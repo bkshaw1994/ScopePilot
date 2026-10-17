@@ -9,11 +9,19 @@ interface Params {
   };
 }
 
+const VALID_DOC_TYPES = ['proposal', 'baseline', 'scope_change_report'] as const;
+type ValidDocType = typeof VALID_DOC_TYPES[number];
+
 export async function GET(req: NextRequest, { params }: Params) {
   try {
     const { id: projectId } = params;
     const url = new URL(req.url);
-    const docType = (url.searchParams.get('type') as PdfExportData['documentType']) || 'scope_change_report';
+    const rawType = url.searchParams.get('type');
+    const docType: ValidDocType = (VALID_DOC_TYPES as readonly string[]).includes(rawType || '')
+      ? (rawType as ValidDocType)
+      : 'scope_change_report';
+
+    const safeFilename = `scopepilot-${projectId.replace(/[^a-zA-Z0-9_-]/g, '')}-${docType}.html`;
 
     if (isLocalDevFallbackAllowed()) {
       // Local development fallback
@@ -53,7 +61,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         status: 200,
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
-          'Content-Disposition': `inline; filename="scopepilot-${projectId}-${docType}.html"`,
+          'Content-Disposition': `inline; filename="${safeFilename}"`,
           'Cache-Control': 'no-store, private',
         },
       });
@@ -143,7 +151,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       status: 200,
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
-        'Content-Disposition': `inline; filename="scopepilot-${projectId}-${docType}.html"`,
+        'Content-Disposition': `inline; filename="${safeFilename}"`,
         'Cache-Control': 'no-store, private',
       },
     });

@@ -88,4 +88,26 @@ describe('API Route Handlers Unit Tests', () => {
     expect(body.success).toBe(true);
     expect(body.data.user_decision).toBe('additional_work');
   });
+
+  it('GET /api/projects/[id]/export returns sanitized HTML report with safe header', async () => {
+    const { GET: exportGet } = await import('@/app/api/projects/[id]/export/route');
+    const req = new NextRequest('http://localhost:3000/api/projects/p-101/export?type=proposal');
+    const res = await exportGet(req, { params: { id: 'p-101' } });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toContain('text/html');
+    expect(res.headers.get('Content-Disposition')).toBe('inline; filename="scopepilot-p-101-proposal.html"');
+
+    const html = await res.text();
+    expect(html).toContain('FitTrack Pro SaaS');
+  });
+
+  it('GET /api/projects/[id]/export falls back to scope_change_report when invalid type is provided', async () => {
+    const { GET: exportGet } = await import('@/app/api/projects/[id]/export/route');
+    const req = new NextRequest('http://localhost:3000/api/projects/p-101/export?type=evil_injected_type');
+    const res = await exportGet(req, { params: { id: 'p-101' } });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Disposition')).toBe('inline; filename="scopepilot-p-101-scope_change_report.html"');
+  });
 });

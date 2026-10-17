@@ -61,6 +61,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         decided_at: now,
       })
       .eq('id', findingId)
+      .eq('user_id', userId)
       .select()
       .single();
 

@@ -6,6 +6,7 @@ interface RateLimitRecord {
 // In-memory token bucket tracking per user/key
 const memoryStore = new Map<string, RateLimitRecord>();
 const MAX_STORE_SIZE_BEFORE_PRUNE = 500;
+const MAX_HARD_CAP = 2000;
 
 /**
  * Removes all expired rate limit records to prevent memory leaks over time.
@@ -36,6 +37,17 @@ export function checkRateLimit(
   // Guard memory growth: prune if cache exceeds size threshold
   if (memoryStore.size >= MAX_STORE_SIZE_BEFORE_PRUNE) {
     pruneExpiredLimits(now);
+
+    // Hard ceiling defense: if unexpired unique keys flood store, evict oldest entries
+    if (memoryStore.size >= MAX_HARD_CAP) {
+      const keys = memoryStore.keys();
+      for (let i = 0; i < 500; i++) {
+        const nextKey = keys.next().value;
+        if (nextKey !== undefined) {
+          memoryStore.delete(nextKey);
+        }
+      }
+    }
   }
 
   const record = memoryStore.get(key);

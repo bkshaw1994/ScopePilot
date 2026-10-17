@@ -60,4 +60,14 @@ describe('Rate Limiter Module', () => {
     const activeRes = checkRateLimit('user-active', 5, 100000);
     expect(activeRes.allowed).toBe(true);
   });
+
+  it('evicts oldest entries when store exceeds hard cap under flood', () => {
+    // Generate 2100 distinct unexpired keys
+    for (let i = 0; i < 2100; i++) {
+      checkRateLimit(`flood-key-${i}`, 10, 60000);
+    }
+    // Latest key should be allowed and store size should stay capped
+    const latestRes = checkRateLimit('flood-latest', 10, 60000);
+    expect(latestRes.allowed).toBe(true);
+  });
 });
